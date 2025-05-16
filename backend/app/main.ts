@@ -1,11 +1,14 @@
 import dotenv from 'dotenv';
 import fastify from 'fastify';
+import indexRoutes from './routers/index.route';
 const app = fastify({ logger: true });
 
 const mongoPlugin = require('./plugins/mongo.ts');
 app.register(mongoPlugin, {
   MONGO_URI: process.env.MONGO_URI || '',
 });
+
+app.register(indexRoutes, { prefix: '/' });
 
 const start = async () => {
     try{
