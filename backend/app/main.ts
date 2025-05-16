@@ -15,6 +15,7 @@ const start = async () => {
       connectDB();
       app.register(require('@fastify/cors'), {
         origin: '*',
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       });
     await app.listen({ port: 3001 });
     const address = app.server.address();
