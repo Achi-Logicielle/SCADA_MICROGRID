@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from 'react';
 import { TextField, Button, Box } from '@mui/material';
 import { addDevice, updateDevice } from '../api/devices';

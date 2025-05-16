@@ -8,6 +8,7 @@ export const devicesService={
             const devices = await Device.find();
             return devices;
         } catch (error:any) {
+            console.log("Error fetching devices:", error);
             throw new Error("Error fetching devices: " + error.message);
         }
     },

@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from 'react';
 import DeviceList from '../components/DeviceList';
 import DeviceForm from '../components/DeviceForm';
