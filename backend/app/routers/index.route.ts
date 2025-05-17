@@ -5,4 +5,5 @@ import { eventLogRoutes } from './eventLog.route';
 export default async function indexRoutes(fastify: FastifyInstance) {
     fastify.register(devicesRoutes, { prefix: '/devices' });
     fastify.register(eventLogRoutes);
+    fastify.register(import('./websocket.route'));
 }

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import mqtt from 'mqtt';
 
 interface SensorReading {
   timestamp: string;
@@ -21,74 +20,72 @@ export default function SensorEventsPage() {
   const [messages, setMessages] = useState<SensorMessage[]>([]);
   const [connectionStatus, setConnectionStatus] = useState('Disconnected');
   const [error, setError] = useState<string | null>(null);
-  const [mqttLogs, setMqttLogs] = useState<string[]>([]);
+  const [wsLogs, setWsLogs] = useState<string[]>([]);
 
   const addLog = (log: string) => {
-    setMqttLogs(prev => [log, ...prev.slice(0, 9)]);
+    setWsLogs(prev => [log, ...prev.slice(0, 9)]);
   };
 
   useEffect(() => {
-    // We need to explicitly use websockets protocol for browser clients
-    const options = {
-      protocol: 'ws',
-      clientId: 'mqtt-nextjs-' + Math.random().toString(16).substring(2, 8),
-      // The below options may be needed depending on your broker
-      clean: true,
-      reconnectPeriod: 5000,
-      connectTimeout: 30000,
-    };
+    const ws = new WebSocket('ws://localhost:3001/ws/1');
 
-    console.log('Attempting to connect to MQTT broker...');
-    const client = mqtt.connect('ws://localhost:9001');
-    
-    client.on('connect', () => {
+    addLog('Attempting to connect to WebSocket server...');
+
+    ws.onopen = () => {
       setConnectionStatus('Connected');
       setError(null);
-      addLog('✅ Connected to MQTT broker');
-      
-      // Subscribe exactly as the Python publisher is broadcasting
-      client.subscribe('iot/#');
-      addLog('📩 Subscribed to topic: iot/#');
-    });
+      addLog('✅ Connected to WebSocket server');
+      // If you need to send a subscription message, do it here
+      // ws.send(JSON.stringify({ action: 'subscribe', topic: 'iot/#' }));
+    };
 
-    client.on('error', (err) => {
-      console.error('❌ MQTT Connection error:', err);
+    ws.onerror = (event) => {
       setConnectionStatus('Error');
-      setError(`Connection error: ${err.message}`);
-      addLog(`❌ Error: ${err.message}`);
-    });
+      setError('WebSocket error');
+      addLog('❌ WebSocket error');
+    };
 
-    client.on('reconnect', () => {
-      setConnectionStatus('Reconnecting');
-      addLog('♻️ Attempting to reconnect...');
-    });
+    ws.onclose = () => {
+      setConnectionStatus('Disconnected');
+      addLog('🔌 WebSocket connection closed');
+    };
 
-    client.on('message', (topic, payload) => {
-      const payloadStr = payload.toString();
-      addLog(`📩 Received on ${topic}: ${payloadStr.substring(0, 30)}...`);
-      
-      try {
-        const message: SensorMessage = JSON.parse(payloadStr);
-        setMessages(prev => {
-          // Check if we already have this exact message to avoid duplicates
-          const isDuplicate = prev.some(m => 
-            m.gateway_id === message.gateway_id &&
-            m.sensor_id === message.sensor_id &&
-            m.reading.timestamp === message.reading.timestamp
-          );
-          
-          if (isDuplicate) return prev;
-          return [message, ...prev.slice(0, 19)];
-        });
-      } catch (err) {
-        console.error('❌ Failed to parse MQTT message:', err);
-        addLog(`❌ Parse error: ${err instanceof Error ? err.message : String(err)}`);
-      }
-    });
+    ws.onmessage = (event) => {
+  console.log('Received message:', event.data);
+  addLog(`📩 Received: ${event.data.substring(0, 30)}...`);
+  try {
+    // Parse the notification wrapper
+    const notification = JSON.parse(event.data);
+    // Defensive checks
+    if (
+      notification.type === 'notification' &&
+      notification.data &&
+      notification.data.message &&
+      notification.data.message.body
+    ) {
+      // The sensor message is a JSON string in body
+      const sensorMsg: SensorMessage = JSON.parse(notification.data.message.body);
+      setMessages(prev => {
+        const isDuplicate = prev.some(m =>
+          m.gateway_id === sensorMsg.gateway_id &&
+          m.sensor_id === sensorMsg.sensor_id &&
+          m.reading.timestamp === sensorMsg.reading.timestamp
+        );
+        if (isDuplicate) return prev;
+        return [sensorMsg, ...prev.slice(0, 19)];
+      });
+    } else {
+      addLog('❌ Unexpected message format');
+    }
+  } catch (err) {
+    addLog(`❌ Parse error: ${err instanceof Error ? err.message : String(err)}`);
+  }
+};
+
 
     return () => {
-      addLog('Disconnecting MQTT client...');
-      client.end();
+      addLog('Disconnecting WebSocket...');
+      ws.close();
     };
   }, []);
 
@@ -136,12 +133,12 @@ export default function SensorEventsPage() {
         <div>
           <h2 className="text-xl font-medium mb-2">Connection Logs</h2>
           <div className="border rounded border-gray-300 bg-gray-50 p-2 font-mono text-sm h-64 overflow-y-auto">
-            {mqttLogs.map((log, i) => (
+            {wsLogs.map((log, i) => (
               <div key={i} className="border-b border-gray-200 pb-1 mb-1 last:border-0">
                 {log}
               </div>
             ))}
-            {mqttLogs.length === 0 && (
+            {wsLogs.length === 0 && (
               <div className="text-gray-500 italic">No connection logs yet</div>
             )}
           </div>
