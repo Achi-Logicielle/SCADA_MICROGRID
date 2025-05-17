@@ -1,23 +1,17 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { amount, price } = body;
-    const cookieStore = cookies();
-    const token = "your_jwt_secret"
-
-    // Call the backend API
-    const response = await fetch('http://localhost:3001/grid/buy', {
+    const response = await fetch(`${BACKEND_URL}/grid/buy`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify({ amount, price }),
+      body: JSON.stringify(body),
     });
-
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {

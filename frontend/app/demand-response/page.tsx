@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
@@ -13,6 +13,7 @@ export default function DemandResponsePage() {
   const [buyPrice, setBuyPrice] = useState('');
   const [sellAmount, setSellAmount] = useState('');
   const [sellPrice, setSellPrice] = useState('');
+  const [gridStatus, setGridStatus] = useState<any>(null);
 
   const handleBuyFromGrid = async () => {
     try {
@@ -27,12 +28,11 @@ export default function DemandResponsePage() {
           price: parseFloat(buyPrice),
         }),
       });
-
       const data = await response.json();
       if (data.success) {
-        toast.success('Successfully bought power from grid');
+        toast.success(data.message);
       } else {
-        toast.error(data.message || 'Failed to buy power from grid');
+        toast.error(data.message);
       }
     } catch (error) {
       toast.error('Error buying power from grid');
@@ -54,12 +54,11 @@ export default function DemandResponsePage() {
           price: parseFloat(sellPrice),
         }),
       });
-
       const data = await response.json();
       if (data.success) {
-        toast.success('Successfully sold power to grid');
+        toast.success(data.message);
       } else {
-        toast.error(data.message || 'Failed to sell power to grid');
+        toast.error(data.message);
       }
     } catch (error) {
       toast.error('Error selling power to grid');
@@ -74,9 +73,10 @@ export default function DemandResponsePage() {
       const response = await fetch('/api/grid/status');
       const data = await response.json();
       if (data.success) {
-        toast.success('Grid Status: ' + JSON.stringify(data.details));
+        setGridStatus(data);
+        toast.success('Grid status updated');
       } else {
-        toast.error(data.message || 'Failed to get grid status');
+        toast.error(data.message);
       }
     } catch (error) {
       toast.error('Error getting grid status');
@@ -173,13 +173,22 @@ export default function DemandResponsePage() {
           <CardTitle>Grid Status</CardTitle>
         </CardHeader>
         <CardContent>
-          <Button 
-            onClick={handleGetGridStatus} 
-            disabled={loading}
-            className="w-full"
-          >
-            {loading ? 'Loading...' : 'Get Grid Status'}
-          </Button>
+          <div className="space-y-4">
+            <Button 
+              onClick={handleGetGridStatus} 
+              disabled={loading}
+              className="w-full"
+            >
+              {loading ? 'Loading...' : 'Get Grid Status'}
+            </Button>
+            {gridStatus && (
+              <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+                <pre className="text-sm">
+                  {JSON.stringify(gridStatus, null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

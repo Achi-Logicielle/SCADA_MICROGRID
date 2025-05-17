@@ -1,20 +1,10 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
 export async function GET() {
   try {
-    const cookieStore = cookies();
-    const token = "your_jwt_secret"
-
-    // Call the backend API
-    const response = await fetch('http://localhost:3001/grid/status', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
+    const response = await fetch(`${BACKEND_URL}/grid/status`);
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
